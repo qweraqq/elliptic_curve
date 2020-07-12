@@ -196,3 +196,33 @@ class EllipticCurve:
             raise Exception("amazingly unlucky random number s")
 
         return (r, s)
+
+    def ecdsa_verify(self,
+                     point_public_key: Tuple[int, int],
+                     raw_int_to_sign: int, 
+                     signature_to_verify: Tuple[int, int]) -> bool:
+        """Verify that raw signature (r, s) is a valid signature
+
+        Args:
+            point_public_key (Tuple[int, int]): [description]
+            raw_int_to_sign (int): [description]
+            signature_to_verify (Tuple[int, int]): [description]
+
+        Returns:
+            bool: [description]
+        """
+        G = self.point_generator
+        n = self.n_curve
+        r = signature_to_verify[0]
+        s = signature_to_verify[1]
+
+        if s < 1 or s > n - 1:
+            return False
+        c = modulo_inv(s, n)
+
+        u1 = (raw_int_to_sign * c) % n
+        u2 = (r * c) % n
+
+        xy = self.EC_add(self.EC_multiply(G, u1), self.EC_multiply(point_public_key, u2))
+        v = xy[0] % n
+        return v == r
