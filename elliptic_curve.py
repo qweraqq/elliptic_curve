@@ -78,6 +78,7 @@ class EllipticCurve:
         self.b_curve = b_curve
         self.point_generator_x = point_generator_x
         self.point_generator_y = point_generator_y
+        self.point_generator = (point_generator_x, point_generator_y)
         self.n_curve = n_curve
         
     def EC_add(self,
@@ -163,3 +164,35 @@ class EllipticCurve:
             if scalar_binary_str[i] == "1":
                 Q = self.EC_add(Q, point_P)
         return Q
+
+    def ecdsa_sign(self, private_key: int, raw_int_to_sign: int, random_k: int) -> Tuple[int, int]:
+        """Return a signature for the provided raw int, using the provided random nonce and private key.  
+        Args:
+            private_key (int): [description]
+            raw_int_to_sign (int): [description]
+            random_k (int): [description]
+
+        Raises:
+            RuntimeError: [description]
+            Exception: [description]
+
+        Returns:
+            Tuple[int, int]: (r, s) pair
+        """        
+        G = self.point_generator
+        n = self.n_curve
+        k = random_k % n
+
+        point_kG = self.EC_multiply(G, k)
+
+        r = point_kG[0] % n
+        while r == 0:
+            point_kG = self.EC_multiply(G, k)
+            r = point_kG[0] % n
+
+        s = (modulo_inv(k, n) *((raw_int_to_sign + r * private_key) % n)) % n
+
+        if s == 0:
+            raise Exception("amazingly unlucky random number s")
+
+        return (r, s)
